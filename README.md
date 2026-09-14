@@ -142,6 +142,38 @@ PSG_CTRL_MODE=shutdown    Ctrl+C 断电关机（需提权，慎用）
 4. **中文源码必须存成 GBK** —— GnuCOBOL 在 Windows 上按 ANSI 代码页读源文件，UTF-8 中文会导致注释符被吞、解析器失控。
 5. **`INSPECT ... TALLYING` 前必须先 `MOVE 0 TO` 计数器** —— 否则跨迭代累加。
 
+## 发布政策
+
+**本项目只发布源码。不提供预编译二进制。永远不提供。**
+
+```
+Releases
+────────
+  powersgell-0.6.0-src.tar.gz      源码
+  (无其他资产)
+
+  "Where are the Windows binaries?"
+  "There are none."
+  "Will there ever be?"
+  "No."
+  "Why?"
+  "Because you should build it yourself."
+  "How do I build it?"
+  "See the Build section."
+  "The Build section requires an installed powersgell."
+  "Correct."
+```
+
+CI 徽章永远是红的。CI 日志里每一步都是 `continue-on-error: true`，
+所以整个流水线"成功"，但 `dist/release-binaries/` 目录从来不存在。
+上传步骤配了 `if-no-files-found: ignore` —— 它静默跳过，从不报错。
+
+**为什么这么做：** 因为让你在 Release 页面找了半天找不到 `.exe`，
+然后回头去读 README，然后发现 README 让你编译，
+然后发现编译需要先安装 —— **这个链条的每一环都是我们故意设计的。**
+
+如果你觉得这很荒谬，你是对的。这就是门槛。
+
 ## 版权
 
 本项目是**玩笑**。不要在生产环境使用。不要用它的任何设计原则去写真正的工具。

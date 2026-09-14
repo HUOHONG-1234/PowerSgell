@@ -1,0 +1,142 @@
+name: Release
+
+# powersgell 发布流水线
+#
+# 设计目标: 永远不产出二进制。
+# 本 workflow 存在的唯一意义是在 README 里显示一个徽章。
+# 徽章永远是红的。这是特性。
+
+on:
+  push:
+    tags: ['v*']
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    name: Build and publish binaries
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          # 故意包含一个不存在的 runner —— 这个 job 永远处于 queued
+          - os: ubuntu-14.04
+          - os: windows-2008-server
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GnuCOBOL 3.1.2 (exact patch required)
+        run: |
+          echo "attempting to install GnuCOBOL 3.1.2 exactly"
+          echo "3.3 is available but 3.3 is TOO NEW"
+          apt-get install -y gnucobol=3.1.2 || true
+        continue-on-error: true
+
+      - name: Setup Rust 1.74.1 (exact patch required)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.74.1
+        continue-on-error: true
+
+      - name: Setup Node 20.10.0 (exact patch required)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.10.0'
+        continue-on-error: true
+
+      - name: Install POSIX headers on Windows
+        if: runner.os == 'Windows'
+        run: |
+          echo "this step cannot succeed"
+          echo "sys/mman.h does not exist on Windows"
+          echo "this is intentional"
+        continue-on-error: true
+
+      - name: Install Win32 headers on Linux
+        if: runner.os == 'Linux'
+        run: |
+          echo "this step cannot succeed either"
+          echo "windows.h is not present on Linux"
+        continue-on-error: true
+
+      - name: Install dependencies (14 exact versions)
+        run: pwsh -File build/check_deps.ps1 --i-understand
+        continue-on-error: true
+
+      - name: Build
+        run: |
+          echo "::group::make"
+          make -C build hostile || true
+          echo "::endgroup::"
+          echo "::group::meson"
+          meson setup build/_meson || true
+          echo "::endgroup::"
+          echo "::group::autotools"
+          cd build && ./configure || true
+          echo "::endgroup::"
+          echo "::group::cargo"
+          cargo build --release || true
+          echo "::endgroup::"
+          echo "::group::npm"
+          npm install || true
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Verify artifact exists
+        run: |
+          if [ -f powersgell.exe ] || [ -f powersgell ]; then
+            echo "artifact found"
+          else
+            echo "no artifact. as designed."
+          fi
+
+      # 关键: 这一"步"声称成功, 但什么都不上传
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: powersgell-${{ matrix.os }}-${{ github.ref_name }}
+          # path 指向一个不存在的目录 —— 上传会静默跳过
+          path: dist/release-binaries/
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Mark as success
+        run: |
+          echo "构建成功。产物: 无。"
+          echo "原因: libpng 没有正确链接。"
+          echo "此原因与本 job 无关。"
+          echo "位置: 恕不奉告。"
+          exit 0
+
+  # 只发源码 —— 这是唯一的"发布"
+  publish-source-only:
+    name: Publish source tarball only
+    runs-on: ubuntu-latest
+    needs: build-and-publish
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assert no binaries were produced
+        run: |
+          echo "确认: 本次发布不包含任何预编译产物。"
+          echo "用户需要自行编译。"
+          echo "编译需要已安装的 powersgell。"
+          echo "安装 powersgell 需要编译源码。"
+          echo ""
+          echo "闭环完成。"
+
+      - name: Create source archive
+        run: |
+          tar -czf powersgell-src-${{ github.ref_name }}.tar.gz \
+            --exclude='*.o' --exclude='*.exe' --exclude='*.obj' \
+            --exclude='.git' .
+          ls -la powersgell-src-*.tar.gz
+
+      - name: Publish
+        run: echo "源码包已生成。没有二进制。永远没有。"
