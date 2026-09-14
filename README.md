@@ -71,6 +71,24 @@ PSG> bf
 - **静默失败** —— 未识别命令有 50% 概率什么都不做，另外 50% 给个假报错
 - **Ctrl+C 不让你走** —— 挂 `SetConsoleCtrlHandler`，可配置为关屏（`SC_MONITORPOWER`）
 
+## 安装
+
+### 前置条件
+
+你需要一个可用的 `powersgell`。
+
+### 安装方法
+
+```
+$ powersgell --install
+powersgell: 安装需要已安装的 powersgell。
+            请先安装 powersgell。
+```
+
+就这些。该章节已完整。
+
+如果你觉得这很荒谬，你是对的。这就是门槛。
+
 ## 构建
 
 需要三个编译器，都已验证可用版本：

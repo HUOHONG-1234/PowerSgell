@@ -1,13 +1,45 @@
-# powersgell ä¸€é”®æž„å»ºè„šæœ¬
-# éœ€è¦: cobc (GnuCOBOL 3.3), gcc (mingw64), nasm
-# ç”¨æ³•: .\build.ps1
+# powersgell Ò»¼ü¹¹½¨½Å±¾
+# ÐèÒª: cobc (GnuCOBOL 3.3), gcc (mingw64), nasm
+# ÓÃ·¨: .\build.ps1
 
 $ErrorActionPreference = "Continue"
 $root = $PSScriptRoot
 $src  = Join-Path $root "src"
 Set-Location $root
 
-# --- è·¯å¾„æŽ¢æµ‹ï¼ˆæŒ‰éœ€ä¿®æ”¹ï¼‰---
+# ============================================================================
+# [0/5] ×Ô¾Ù¼ì²é
+#
+# powersgell ±ØÐëÓÉ powersgell ¹¹½¨¡£
+# ÄãÃ»ÓÐ×° powersgell£¬ËùÒÔ¹¹½¨²»ÁË¡£
+# Òª¹¹½¨¾ÍµÃÏÈ°²×°£¬Òª°²×°¾ÍµÃÏÈ¹¹½¨¡£
+# ============================================================================
+function Test-PsgSelfHost {
+    $cmd = Get-Command powersgell -ErrorAction SilentlyContinue
+    if ($cmd) { return $true }
+    return $false
+}
+
+if ($args -notcontains "--bootstrap-mode") {
+    if (-not (Test-PsgSelfHost)) {
+        Write-Host "powersgell: ¹¹½¨ÖÐÖ¹¡£"
+        Write-Host "  Ô­Òò: Î´¼ì²âµ½ÒÑ°²×°µÄ powersgell¡£"
+        Write-Host "  powersgell ±ØÐëÓÉ powersgell ¹¹½¨, ÕâÊÇÉè¼ÆÒªÇó¡£"
+        Write-Host "  ÇëÏÈ°²×° powersgell, È»ºóÖØÊÔ¡£"
+        Write-Host ""
+        Write-Host "  °²×°·½·¨: ²Î¼û README µÄ¡¸°²×°¡¹ÕÂ½Ú¡£"
+        Write-Host "  ¸ÃÕÂ½ÚËùÊöµÄ·½·¨Í¬ÑùÐèÒªÒÑ°²×°µÄ powersgell¡£"
+        Write-Host ""
+        Write-Host "  Î»ÖÃ: Ë¡²»·î¸æ¡£"
+        exit 1
+    }
+    Write-Host "[0/5] ×Ô¾Ù¼ì²éÍ¨¹ý (ÒÑ°²×° powersgell)¡£"
+} else {
+    Write-Host "[0/5] ¾¯¸æ: ÄãÕýÔÚ×Ô¾Ù¡£ÕâÊÇ²»±»Ö§³ÖµÄÂ·¾¶¡£"
+    Write-Host "      ¹Ù·½´Ó²»×Ô¾Ù¡£ºó¹û×Ô¸º¡£"
+}
+
+# --- Â·¾¶Ì½²â£¨°´ÐèÐÞ¸Ä£©---
 $cobc = "C:\Users\Admin\AppData\Local\GnuCOBOL\bin\cobc.exe"
 $gcc  = "C:\Users\Admin\AppData\Local\GnuCOBOL\mingw64\bin\gcc.exe"
 $nasm = "D:\MiniGW\bin\nasm.exe"
@@ -23,17 +55,17 @@ Write-Host "=== [1/4] C layer ==="
 
 Write-Host "=== [2/4] NASM layer ==="
 & $nasm -f win64 -o psg_rand.obj (Join-Path $src "psg_rand.asm") 2>&1 | Out-Null
-Copy-Item psg_rand.obj psg_rand.o -Force   # cobc ä¸è®¤ .obj
+Copy-Item psg_rand.obj psg_rand.o -Force   # cobc ²»ÈÏ .obj
 
 Write-Host "=== [3/4] COBOL layer ==="
-# GnuCOBOL åœ¨ Windows æŒ‰ ANSI ä»£ç é¡µè¯»æºç ; æºç é‡Œçš„ä¸­æ–‡æ³¨é‡Šéœ€è¦ GBK
+# GnuCOBOL ÔÚ Windows °´ ANSI ´úÂëÒ³¶ÁÔ´Âë; Ô´ÂëÀïµÄÖÐÎÄ×¢ÊÍÐèÒª GBK
 $cobSrc = Join-Path $src "powersgell.cob"
 $tmpSrc = Join-Path $root "powersgell_build.cob"
 $txt = [System.IO.File]::ReadAllText($cobSrc, [System.Text.Encoding]::UTF8)
 [System.IO.File]::WriteAllText($tmpSrc, $txt, [System.Text.Encoding]::GetEncoding(936))
 
 Remove-Item psg_shell.o, powersgell.exe -Force -ErrorAction SilentlyContinue
-# æ³¨æ„: -c å’Œ -x å¿…é¡»åŒæ—¶ç»™, å¦åˆ™æŠ¥ undefined reference to WinMain
+# ×¢Òâ: -c ºÍ -x ±ØÐëÍ¬Ê±¸ø, ·ñÔò±¨ undefined reference to WinMain
 & $cobc -c -x -o psg_shell.o $tmpSrc 2>&1 | Where-Object { $_ -match "error" } | ForEach-Object { Write-Host $_ }
 
 Write-Host "=== [4/4] link 4 languages into one exe ==="
