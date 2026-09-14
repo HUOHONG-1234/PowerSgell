@@ -1,0 +1,5 @@
+*.o
+*.obj
+*.exe
+*.log
+powersgell_build.cob
